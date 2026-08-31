@@ -13,7 +13,7 @@ RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl ca-certificates gcc \
+RUN apt-get update && apt-get install -y curl ca-certificates gcc xvfb x11vnc novnc websockify \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,4 +44,5 @@ ENV PYTHONPATH=/app
 ENV TZ=Asia/Shanghai
 
 # 启动服务
-CMD ["python", "websocket/main.py"]
+COPY websocket/start-vnc.sh /app/start-vnc.sh
+CMD ["/app/start-vnc.sh"]
