@@ -64,6 +64,7 @@ from . import (
     external_publish,
     proxy,
     refund_cancel,
+    resources,
     qr_login,
     qrcode,
     risk_control_logs,
@@ -120,6 +121,7 @@ api_router.include_router(external_category.router, tags=["公开分类推荐"])
 api_router.include_router(external_publish.router, tags=["公开商品发布"])  # 已定义prefix="/external/publish"
 api_router.include_router(keywords.router, prefix="/keywords-with-item-id", tags=["关键词管理"])
 api_router.include_router(cards.router, prefix="/cards", tags=["卡券管理"])
+api_router.include_router(resources.router, tags=["资源管理"])
 api_router.include_router(distribution.router, prefix="/distribution", tags=["分销管理"])
 api_router.include_router(card_dock.router, tags=["分销卡券"])  # 已定义prefix="/card-dock"
 api_router.include_router(payment.router, tags=["支付管理"])  # 已定义prefix="/payment"

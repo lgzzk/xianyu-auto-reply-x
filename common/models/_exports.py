@@ -11,6 +11,7 @@ from common.models.xy_keyword_rule import XYKeywordRule
 from common.models.xy_order import XYOrder
 from common.models.card import Card
 from common.models.resource_file import ResourceFile
+from common.models.resource_download_ticket import ResourceDownloadTicket
 from common.models.default_reply import DefaultReply, DefaultReplyRecord
 from common.models.ai_chat_message import AIChatMessage
 from common.models.risk_control_log import XYRiskControlLog as RiskControlLog
@@ -75,6 +76,7 @@ __all__ = [
     "XYOrder",
     "Card",
     "ResourceFile",
+    "ResourceDownloadTicket",
     "DefaultReply",
     "DefaultReplyRecord",
     "AIChatMessage",

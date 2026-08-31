@@ -89,6 +89,9 @@ services:
       - STATIC_DIR=/app/static
       - BACKUP_DIR=/app/backups
       - BACKEND_WEB_PUBLIC_URL=${BACKEND_WEB_PUBLIC_URL:-}
+      - RESOURCE_PUBLIC_BASE=https://freefish.duckdns.org
+      - RESOURCE_INTERNAL_BASE=http://backend-web:8089/api/v1
+      - RESOURCE_STORAGE_DIR=/app/static/uploads/resources
       - CARD_DOCK_BASE_URL=${CARD_DOCK_BASE_URL:-http://backend.zhinianboke.com}
       - EXTERNAL_API_KEY=${EXTERNAL_API_KEY:-zhinian_bk}
       - FRONTEND_PUBLIC_URL=${FRONTEND_PUBLIC_URL:-}
