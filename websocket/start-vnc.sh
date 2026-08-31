@@ -1,8 +1,14 @@
 #!/bin/sh
 set -eu
 export DISPLAY=:99
+rm -f /tmp/.X11-unix/X99
 Xvfb "$DISPLAY" -screen 0 1440x900x24 -ac +extension RANDR >/tmp/xvfb.log 2>&1 &
+xvfb_pid=$!
 for i in $(seq 1 30); do
+  if ! kill -0 "$xvfb_pid" 2>/dev/null; then
+    echo "Xvfb exited before display became ready" >&2
+    exit 1
+  fi
   [ -S /tmp/.X11-unix/X99 ] && break
   sleep 1
 done
