@@ -1,0 +1,6 @@
+services:
+  websocket:
+    environment:
+      DISPLAY: ":99"
+    ports:
+      - "127.0.0.1:6080:6080"
