@@ -1862,6 +1862,43 @@ class DatabaseInitializer:
                 INDEX idx_chat_quick_phrase_owner_sort (owner_id, sort_order)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线聊天快捷短语';
         """,
+
+        "xy_resource_files": """
+            CREATE TABLE IF NOT EXISTS xy_resource_files (
+                id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源文件ID',
+                user_id BIGINT NOT NULL COMMENT '所属用户ID',
+                name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+                token VARCHAR(96) NOT NULL COMMENT '资源签发密钥',
+                storage_path TEXT NOT NULL COMMENT '服务器存储路径',
+                size_bytes BIGINT NOT NULL DEFAULT 0 COMMENT '文件大小（字节）',
+                expires_at DATETIME DEFAULT NULL COMMENT '资源级过期时间',
+                max_downloads INT DEFAULT NULL COMMENT '资源级最大下载次数',
+                download_count INT NOT NULL DEFAULT 0 COMMENT '资源累计下载次数',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                UNIQUE KEY uk_resource_file_token (token),
+                INDEX ix_xy_resource_files_user_id (user_id),
+                INDEX ix_xy_resource_files_expires_at (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='自动发货资源文件';
+        """,
+
+        "xy_resource_download_tickets": """
+            CREATE TABLE IF NOT EXISTS xy_resource_download_tickets (
+                id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '下载凭证ID',
+                resource_id BIGINT NOT NULL COMMENT '资源文件ID',
+                order_id VARCHAR(128) NOT NULL COMMENT '订单号',
+                token VARCHAR(96) NOT NULL COMMENT '随机下载令牌',
+                expires_at DATETIME NOT NULL COMMENT '下载链接过期时间',
+                max_downloads INT NOT NULL DEFAULT 3 COMMENT '最大下载次数',
+                download_count INT NOT NULL DEFAULT 0 COMMENT '已下载次数',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                UNIQUE KEY uk_resource_ticket_token (token),
+                UNIQUE KEY uq_resource_order (resource_id, order_id),
+                INDEX ix_xy_resource_download_tickets_resource_id (resource_id),
+                INDEX ix_xy_resource_download_tickets_order_id (order_id),
+                INDEX ix_xy_resource_download_tickets_expires_at (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按订单签发的限时下载凭证';
+        """,
     }
     
     # 字段迁移定义：表名 -> [(字段名, 字段定义, 在哪个字段后面)]
