@@ -26,11 +26,23 @@ INTERNAL_BASE = os.getenv("RESOURCE_INTERNAL_BASE", "http://backend-web:8089/api
 MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024
 
 
-def _resource_dict(row: ResourceFile) -> dict:
+def _resource_dict(row: ResourceFile, card: Card | None = None) -> dict:
+    item_id = row.item_id or (card.item_id if card else None)
+    card_id = row.card_id or (card.id if card else None)
+    ttl_hours = row.ttl_hours
+    if ttl_hours is None and card and card.api_config:
+        try:
+            config = json.loads(card.api_config) if isinstance(card.api_config, str) else card.api_config
+            params = config.get("params", {}) if isinstance(config, dict) else {}
+            params = json.loads(params) if isinstance(params, str) else params
+            ttl_hours = int(params.get("ttl_hours")) if params.get("ttl_hours") is not None else None
+        except (TypeError, ValueError, json.JSONDecodeError):
+            ttl_hours = None
     return {
         "id": row.id, "name": row.name, "size_bytes": row.size_bytes,
         "expires_at": row.expires_at.isoformat() if row.expires_at else None,
         "max_downloads": row.max_downloads, "download_count": row.download_count,
+        "item_id": item_id, "card_id": card_id, "ttl_hours": ttl_hours,
         "created_at": row.created_at.isoformat() if row.created_at else None,
     }
 
@@ -38,7 +50,13 @@ def _resource_dict(row: ResourceFile) -> dict:
 @router.get("")
 async def list_resources(current_user: User = Depends(deps.get_current_active_user), session: AsyncSession = Depends(deps.get_db_session)):
     result = await session.execute(select(ResourceFile).where(ResourceFile.user_id == current_user.id).order_by(ResourceFile.id.desc()))
-    return [_resource_dict(row) for row in result.scalars().all()]
+    resources = result.scalars().all()
+    cards = (await session.execute(select(Card).where(Card.user_id == current_user.id))).scalars().all()
+    rows = []
+    for row in resources:
+        card = next((candidate for candidate in cards if candidate.id == row.card_id or (row.token and row.token in (candidate.api_config or ""))), None)
+        rows.append(_resource_dict(row, card))
+    return rows
 
 
 @router.post("")
@@ -75,6 +93,7 @@ async def upload_resource(
         user_id=current_user.id, name=original_name, token=master_token,
         storage_path=str(target), size_bytes=size,
         expires_at=None, max_downloads=max_downloads, download_count=0,
+        item_id=item_id.strip() or None, ttl_hours=ttl_hours,
     )
     session.add(resource)
     await session.flush()
@@ -97,6 +116,7 @@ async def upload_resource(
             price=None, is_dockable=False, fee_payer=None, min_price=None,
             dock_visibility=None, is_multi_spec=False, spec_name=None, spec_value=None,
         )
+        resource.card_id = card_id
     await session.commit()
     await session.refresh(resource)
     return {"success": True, "resource": _resource_dict(resource), "card_id": card_id}

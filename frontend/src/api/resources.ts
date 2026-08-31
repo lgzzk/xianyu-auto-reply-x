@@ -7,6 +7,9 @@ export interface ResourceItem {
   expires_at?: string | null
   max_downloads: number
   download_count: number
+  item_id?: string | null
+  card_id?: number | null
+  ttl_hours?: number | null
   created_at?: string
 }
 

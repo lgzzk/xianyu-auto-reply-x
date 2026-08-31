@@ -191,7 +191,16 @@ class ItemService:
         default_reply_map = await self._get_default_reply_status_batch(items_data)
         card_set = await self._get_card_status_batch(items_data)
         
-        return [self._serialize_item(item, acct_id, default_reply_map.get((acct_id, item.item_id)), item.item_id in card_set) for item, acct_id in items_data]
+        # 同一闲鱼商品可能因账号删除后重新添加而产生多条本地缓存记录。
+        # 管理页按平台商品 ID 展示，保留最新一条（查询已按创建时间倒序）。
+        seen_item_ids: set[str] = set()
+        unique_items_data = []
+        for item, acct_id in items_data:
+            if item.item_id in seen_item_ids:
+                continue
+            seen_item_ids.add(item.item_id)
+            unique_items_data.append((item, acct_id))
+        return [self._serialize_item(item, acct_id, default_reply_map.get((acct_id, item.item_id)), item.item_id in card_set) for item, acct_id in unique_items_data]
 
     async def list_items_paginated(
         self,
@@ -279,7 +288,8 @@ class ItemService:
             base_stmt = base_stmt.where(and_(*conditions))
         
         # 查询总数：仅在按账号筛选时才需要 JOIN 账号表，否则直接基于商品表统计，避免无谓 JOIN
-        count_stmt = select(func.count(XYCatalogItem.id)).select_from(XYCatalogItem)
+        # 商品列表按平台 item_id 去重，避免账号重建/重复同步导致总数虚高。
+        count_stmt = select(func.count(func.distinct(XYCatalogItem.item_id))).select_from(XYCatalogItem)
         if account_id:
             count_stmt = count_stmt.outerjoin(XYAccount, XYCatalogItem.account_pk == XYAccount.id)
         if conditions:
@@ -297,7 +307,14 @@ class ItemService:
         default_reply_map = await self._get_default_reply_status_batch(items_data)
         card_set = await self._get_card_status_batch(items_data)
         
-        items = [self._serialize_item(item, acct_id, default_reply_map.get((acct_id, item.item_id)), item.item_id in card_set) for item, acct_id in items_data]
+        seen_item_ids: set[str] = set()
+        unique_items_data = []
+        for item, acct_id in items_data:
+            if item.item_id in seen_item_ids:
+                continue
+            seen_item_ids.add(item.item_id)
+            unique_items_data.append((item, acct_id))
+        items = [self._serialize_item(item, acct_id, default_reply_map.get((acct_id, item.item_id)), item.item_id in card_set) for item, acct_id in unique_items_data]
         return items, total
 
     async def fetch_items_page_from_account(

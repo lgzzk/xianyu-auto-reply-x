@@ -15,5 +15,8 @@ class ResourceFile(Base):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     max_downloads: Mapped[int | None] = mapped_column(Integer, nullable=True)
     download_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    item_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    card_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    ttl_hours: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

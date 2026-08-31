@@ -1874,11 +1874,16 @@ class DatabaseInitializer:
                 expires_at DATETIME DEFAULT NULL COMMENT '资源级过期时间',
                 max_downloads INT DEFAULT NULL COMMENT '资源级最大下载次数',
                 download_count INT NOT NULL DEFAULT 0 COMMENT '资源累计下载次数',
+                item_id VARCHAR(64) DEFAULT NULL COMMENT '关联商品ID',
+                card_id BIGINT DEFAULT NULL COMMENT '自动发货卡券ID',
+                ttl_hours INT DEFAULT NULL COMMENT '订单链接有效期（小时）',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                 UNIQUE KEY uk_resource_file_token (token),
                 INDEX ix_xy_resource_files_user_id (user_id),
-                INDEX ix_xy_resource_files_expires_at (expires_at)
+                INDEX ix_xy_resource_files_expires_at (expires_at),
+                INDEX ix_xy_resource_files_item_id (item_id),
+                INDEX ix_xy_resource_files_card_id (card_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='自动发货资源文件';
         """,
 
@@ -1903,6 +1908,11 @@ class DatabaseInitializer:
     
     # 字段迁移定义：表名 -> [(字段名, 字段定义, 在哪个字段后面)]
     COLUMN_MIGRATIONS = {
+        "xy_resource_files": [
+            ("item_id", "VARCHAR(64) DEFAULT NULL COMMENT '关联商品ID'", "download_count"),
+            ("card_id", "BIGINT DEFAULT NULL COMMENT '自动发货卡券ID'", "item_id"),
+            ("ttl_hours", "INT DEFAULT NULL COMMENT '订单链接有效期（小时）'", "card_id"),
+        ],
         "xy_recharge_orders": [
             ("order_type", "VARCHAR(20) NOT NULL DEFAULT 'recharge' COMMENT '订单类型：recharge-余额充值，ad-广告申请付款'", "amount"),
         ],
