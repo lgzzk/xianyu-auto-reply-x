@@ -149,7 +149,8 @@ class PolishTaskService:
         logger.info(f"【{self.task_name}】开始处理账号: {account.account_id}")
 
         try:
-            # 1. 查询该账号下未擦亮的商品
+            # 1. 查询该账号下今天尚未擦亮的商品。
+            # 平台允许每天重复擦亮；不能用 is_polished=True 永久排除商品。
             items = await self._get_unpolished_items(session, account.id)
             
             if not items:
@@ -279,18 +280,36 @@ class PolishTaskService:
 
     async def _get_unpolished_items(self, session: AsyncSession, account_pk: int) -> List[XYCatalogItem]:
         """
-        获取账号下未擦亮的商品
+        获取账号下今天尚未成功擦亮的商品。
         
         条件：
         - account_pk = 指定账号ID
-        - is_polished = False 或 NULL（未擦亮）
+        - 每个商品每天最多执行一次；历史 is_polished 仅用于展示最近状态
         """
-        stmt = select(XYCatalogItem).where(
-            XYCatalogItem.account_pk == account_pk,
-            (XYCatalogItem.is_polished == False) | (XYCatalogItem.is_polished == None),
+        items_result = await session.execute(
+            select(XYCatalogItem).where(XYCatalogItem.account_pk == account_pk)
         )
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        items = list(items_result.scalars().all())
+        if not items:
+            return []
+
+        account_id = await session.scalar(
+            select(XYAccount.account_id).where(XYAccount.id == account_pk)
+        )
+        if not account_id:
+            return items
+
+        # 日志表使用 UTC naive 时间；以 UTC 当日 00:00 作为每日边界。
+        day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        success_result = await session.execute(
+            select(ScheduledPolishLog.item_id).where(
+                ScheduledPolishLog.account_id == str(account_id),
+                ScheduledPolishLog.status == "success",
+                ScheduledPolishLog.created_at >= day_start,
+            )
+        )
+        polished_today = {str(item_id) for item_id in success_result.scalars().all()}
+        return [item for item in items if str(item.item_id) not in polished_today]
 
     async def _polish_item(self, cookie_str: str, item_id: str, retry_count: int = 0) -> dict:
         """
